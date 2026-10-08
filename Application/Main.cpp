@@ -23,11 +23,13 @@
 #include "Application/ImGuiDraw.h"
 #include "Application/Win32Application.h"
 #include "Passes/DemoGraph.h"
+#include "Passes/ForwardPass.h"
 #include "Passes/LightUpdatePass.h"
 #include "Passes/LightingPass.h"
 #include "Passes/PostProcessPass.h"
 #include "RenderGraph/RenderGraph.h"
 #include "Renderer/Renderer.h"
+#include "Scene/MaterialXImporter.h"
 #include "Scene/Scene.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -93,7 +95,11 @@ namespace
             changed |= ImGui::SliderFloat("Point lights", &params.PointLightScale, 0.0f, 4.0f);
             changed |= ImGui::ColorEdit3("Sky (ambient)", params.Ambient, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
             if (changed)
+            {
                 lighting->SetParams(params);
+                if (auto* forward = graph.GetPass<ForwardPass>("Forward"))
+                    forward->SetParams(params); // the glass is lit like the rest of the scene
+            }
         }
         ImGui::Checkbox("Animate scene", &ui.Animate);
 
@@ -229,6 +235,13 @@ int main(int argc, char** argv)
 #endif
 
     Scene scene = CreateDemoScene();
+
+    // MaterialX material (Dark_Glass_2k_8b_oCH0KDS) on the center cube, instance 1 of CreateDemoScene.
+    if (std::optional<MaterialXMaterial> material = ImportMaterialX(RG_MATERIALX_FILE))
+        scene.Instances[1].Material = AddMaterialX(scene, *material);
+    else
+        std::fprintf(stderr, "MaterialX material '%s' not loaded, the center cube keeps its demo material\n", RG_MATERIALX_FILE);
+
     scene.MainCamera.SetAspectRatio(window.GetWidth(), window.GetHeight());
 
     int exitCode = 0;

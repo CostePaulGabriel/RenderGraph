@@ -9,6 +9,7 @@ namespace LynxEngine
     //   LightUpdate (compute) ──lights──────────────┐
     //   Depth ──depth──► GBuffer ──albedo,normal,material,emissive──► Lighting ──color──► PostProcess ──output──► Overlay ──► back buffer
     //         └──depth────────────────────────────►┘
+    //   Shadow ──shadow (sun shadow map)───────────► Lighting
     //   DebugNormals (only used when the debug view is on, culled otherwise)
     //
     // Passes are added deliberately out of order: the execution order comes from the edges.

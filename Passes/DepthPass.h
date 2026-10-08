@@ -16,7 +16,7 @@ namespace LynxEngine
 
             AddShader(ShaderType::Vertex, "Scene.slang", "VSMain");
             DeclareSceneGeometry(*this);
-            SetDraw(DrawScene);
+            SetDraw(DrawOpaqueScene);
             State().Depth = { .TestEnable = true, .WriteEnable = true, .Func = ComparisonFunc::Less };
         }
     };

@@ -25,6 +25,11 @@ struct MaterialConstants
     uint normalTexture;
     uint occlusionTexture;
     uint emissiveTexture;
+    float3 transmissionColor;
+    float transmission;
+    float specular; // dielectric reflection weight
+    float ior;
+    float2 padding;
 };
 static const uint kNoTexture = 0xFFFFFFFF;
 
@@ -57,9 +62,9 @@ struct SceneVaryings
 
 struct GBufferTargets
 {
-    float4 albedo : SV_Target0;   // SRGBA8: base color, A = occlusion
-    float4 normal : SV_Target1;   // RGBA16F: world normal
-    float4 material : SV_Target2; // RGBA8: R = metallic, G = roughness
+    float4 albedo : SV_Target0;   // SRGBA8: base color (transmission tint where transmissive), A = occlusion
+    float4 normal : SV_Target1;   // RGBA16F: world normal, W = IOR
+    float4 material : SV_Target2; // RGBA8: R = metallic, G = roughness, B = transmission, A = specular weight
     float4 emissive : SV_Target3; // RGBA16F: emitted radiance
 };
 
@@ -120,9 +125,13 @@ GBufferTargets PSGBuffer(SceneVaryings input)
     }
 
     GBufferTargets output;
-    output.albedo = float4(baseColor.rgb, occlusion);
-    output.normal = float4(normal, 0.0);
-    output.material = float4(saturate(material.metallic * metallicRoughness.b), saturate(material.roughness * metallicRoughness.g), 0.0, 0.0);
+    // One color channel: the diffuse lobe is weighted by (1 - transmission) in the lighting, so the
+    // stored color moves to the transmission tint as the surface becomes transmissive.
+    const float transmission = saturate(material.transmission);
+    output.albedo = float4(lerp(baseColor.rgb, material.transmissionColor, transmission), occlusion);
+    output.normal = float4(normal, material.ior);
+    output.material = float4(saturate(material.metallic * metallicRoughness.b), saturate(material.roughness * metallicRoughness.g),
+        transmission, saturate(material.specular));
     output.emissive = float4(emissive, 0.0);
     return output;
 }

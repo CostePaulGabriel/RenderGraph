@@ -5,6 +5,9 @@
 	"dependencies": [
 		"shader-slang",
 		"directx-dxc",
+		"freetype",
+		"materialx",
+		"stb",
 		{
 			"name": "imgui",
 			"features": [ "win32-binding" ]

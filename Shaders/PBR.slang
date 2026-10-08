@@ -13,10 +13,20 @@ struct Surface
     float roughness; // perceptual
     float occlusion;
     float3 normal;   // world space, normalized
+    float transmission; // 0 = opaque; 1 = no diffuse, the rest is refracted (baseColor is then the tint)
+    float specular;     // dielectric reflection weight
+    float ior;          // dielectric index of refraction (1.5 -> F0 = 0.04)
 };
 
-float3 SpecularColor(Surface surface) { return lerp(float3(0.04, 0.04, 0.04), surface.baseColor, surface.metallic); } // F0
-float3 DiffuseColor(Surface surface) { return surface.baseColor * (1.0 - surface.metallic); }
+float DielectricF0(float ior)
+{
+    const float r = (ior - 1.0) / (ior + 1.0);
+    return r * r;
+}
+
+float3 SpecularColor(Surface surface) { return lerp(DielectricF0(surface.ior).xxx, surface.baseColor, surface.metallic); } // F0
+float SpecularWeight(Surface surface) { return lerp(surface.specular, 1.0, surface.metallic); } // metals ignore the dielectric weight
+float3 DiffuseColor(Surface surface) { return surface.baseColor * (1.0 - surface.metallic) * (1.0 - surface.transmission); }
 
 float D_GGX(float NoH, float alpha)
 {
@@ -57,7 +67,7 @@ float3 EvaluateLight(Surface surface, float3 V, float3 L, float3 radiance)
     const float roughness = max(surface.roughness, kMinRoughness);
     const float alpha = roughness * roughness;
 
-    const float3 F = F_Schlick(SpecularColor(surface), VoH);
+    const float3 F = F_Schlick(SpecularColor(surface), VoH) * SpecularWeight(surface);
     const float3 specular = D_GGX(NoH, alpha) * V_SmithGGXCorrelated(NoV, NoL, alpha) * F;
     const float3 diffuse = (1.0 - F) * DiffuseColor(surface) / PI;
 

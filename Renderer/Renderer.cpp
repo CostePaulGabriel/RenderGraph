@@ -52,8 +52,13 @@ namespace LynxEngine
             uint32_t NormalTexture;
             uint32_t OcclusionTexture;
             uint32_t EmissiveTexture;
+            float TransmissionColor[3];
+            float Transmission;
+            float Specular;
+            float IOR;
+            float Padding[2];
         };
-        static_assert(sizeof(GpuMaterial) == 64);
+        static_assert(sizeof(GpuMaterial) == 96);
 
         constexpr uint32_t kPassConstantsSlot = 0;
         constexpr uint32_t kFrameConstantsSlot = 1;
@@ -470,6 +475,10 @@ namespace LynxEngine
             gpu.NormalTexture = ToDescriptor(material.NormalTexture);
             gpu.OcclusionTexture = ToDescriptor(material.OcclusionTexture);
             gpu.EmissiveTexture = ToDescriptor(material.EmissiveTexture);
+            std::copy(std::begin(material.TransmissionColor), std::end(material.TransmissionColor), gpu.TransmissionColor);
+            gpu.Transmission = material.Transmission;
+            gpu.Specular = material.Specular;
+            gpu.IOR = material.IOR;
             return gpu;
         }
 

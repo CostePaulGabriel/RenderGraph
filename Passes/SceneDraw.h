@@ -46,4 +46,30 @@ namespace LynxEngine
         for (const MeshInstance& instance : scene.Instances)
             DrawMeshInstance(context, scene, instance);
     }
+
+    // Transmissive materials (glass) are drawn by ForwardPass after Lighting.
+    inline bool IsTransmissive(const Scene& scene, const MeshInstance& instance)
+    {
+        return instance.Material < scene.Materials.size() && scene.Materials[instance.Material].Transmission > 0.0f;
+    }
+
+    inline void DrawOpaqueScene(DrawContext& context)
+    {
+        const Scene& scene = context.GetScene();
+        for (const MeshInstance& instance : scene.Instances)
+        {
+            if (!IsTransmissive(scene, instance))
+                DrawMeshInstance(context, scene, instance);
+        }
+    }
+
+    inline void DrawTransmissiveScene(DrawContext& context)
+    {
+        const Scene& scene = context.GetScene();
+        for (const MeshInstance& instance : scene.Instances)
+        {
+            if (IsTransmissive(scene, instance))
+                DrawMeshInstance(context, scene, instance);
+        }
+    }
 }

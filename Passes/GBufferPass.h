@@ -29,7 +29,7 @@ namespace LynxEngine
             AddSampler({ .MinFilter = FilterMode::Anisotropic, .MagFilter = FilterMode::Anisotropic }); // wrap, for material textures
 
             DeclareSceneGeometry(*this);
-            SetDraw(DrawScene);
+            SetDraw(DrawOpaqueScene);
             SetUsesMaterials(true);
             State().Depth = { .TestEnable = true, .WriteEnable = false, .Func = ComparisonFunc::LessOrEqual };
         }

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "RenderGraph/RenderPass.h"
+#include "Scene/Math.h"
 
 namespace LynxEngine
 {
     // Deferred PBR lighting (GGX / Smith / Schlick, metallic-roughness) on a fullscreen triangle.
-    //   in : albedo, normal, material, emissive, depth (SRV t0..t4), lights (StructuredBuffer t5)
+    //   in : albedo, normal, material, emissive, depth (SRV t0..t4), lights (StructuredBuffer t5), shadow (sun shadow map t6)
     //   out: color (RGBA16F HDR)
     class LightingPass : public RenderPass
     {
@@ -16,6 +17,7 @@ namespace LynxEngine
             float SunIntensity = 1.2f;
             float Ambient[3] = { 0.20f, 0.24f, 0.30f }; // sky radiance (the ground gets a darker share)
             float PointLightScale = 1.0f;
+            float4x4 LightViewProjection; // sun matrix of the ShadowPass
         };
 
         LightingPass()
@@ -27,6 +29,7 @@ namespace LynxEngine
             Input("emissive");
             Input("depth");
             InputBuffer("lights");
+            Input("shadow");
             Output("color", { .Format = TextureFormat::RGBA16_FLOAT });
 
             AddShader(ShaderType::Vertex, "Fullscreen.slang", "VSMain");

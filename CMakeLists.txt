@@ -49,9 +49,11 @@ add_library(RenderGraphCore STATIC
     RenderGraph/RenderGraph.cpp
 
     Passes/DepthPass.h
+    Passes/ShadowPass.h
     Passes/GBufferPass.h
     Passes/LightUpdatePass.h
     Passes/LightingPass.h
+    Passes/ForwardPass.h
     Passes/DebugNormalsPass.h
     Passes/PostProcessPass.h
     Passes/OverlayPass.h
@@ -87,8 +89,17 @@ if(RG_BUILD_APP)
 
     # vcpkg packages (see vcpkg.json).
     find_package(imgui CONFIG REQUIRED)
+    find_package(Freetype REQUIRED)
     find_package(slang CONFIG REQUIRED)
     find_package(directx-dxc CONFIG REQUIRED) # dxcompiler.dll / dxil.dll, used by Slang to emit DXIL
+    find_package(MaterialX CONFIG REQUIRED)   # .mtlx reading (Scene/MaterialXImporter.cpp)
+    find_package(Stb REQUIRED)                # stb_image, for the textures a .mtlx references
+
+    # MaterialX asset drawn on the center cube, extracted into the build tree at configure time.
+    set(RG_MATERIALX_ZIP ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Dark_Glass_2k_8b_oCH0KDS.zip)
+    set(RG_MATERIALX_DIR ${CMAKE_BINARY_DIR}/Assets/Dark_Glass_2k_8b_oCH0KDS)
+    file(ARCHIVE_EXTRACT INPUT ${RG_MATERIALX_ZIP} DESTINATION ${RG_MATERIALX_DIR})
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${RG_MATERIALX_ZIP})
 
     # NVRHI, pinned to a known commit. NVRHI fetches its own DirectX-Headers.
     include(FetchContent)
@@ -112,8 +123,10 @@ if(RG_BUILD_APP)
         Shaders/PBR.slang
         Shaders/Fullscreen.slang
         Shaders/Scene.slang
+        Shaders/Shadow.slang
         Shaders/Lights.slang
         Shaders/Lighting.slang
+        Shaders/Forward.slang
         Shaders/DebugNormals.slang
         Shaders/PostProcess.slang
         Shaders/ImGui.slang
@@ -134,6 +147,9 @@ if(RG_BUILD_APP)
         Renderer/ShaderCompiler.h
         Renderer/ShaderCompiler.cpp
 
+        Scene/MaterialXImporter.h
+        Scene/MaterialXImporter.cpp
+
         Backends/Backend.h
         Backends/D3D12/D3D12Backend.cpp
         Backends/Vulkan/VulkanBackend.cpp
@@ -146,12 +162,18 @@ if(RG_BUILD_APP)
         nvrhi_d3d12
         $<$<BOOL:${RG_BACKEND_VULKAN}>:nvrhi_vk>
         imgui::imgui
+        Freetype::Freetype
         slang::slang
+        MaterialXCore
+        MaterialXFormat
         Microsoft::DirectXShaderCompiler
         d3d12
         dxgi
     )
-    target_compile_definitions(RenderGraphPrototype PRIVATE RG_SOURCE_SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Shaders")
+    target_include_directories(RenderGraphPrototype PRIVATE ${Stb_INCLUDE_DIR})
+    target_compile_definitions(RenderGraphPrototype PRIVATE
+        RG_SOURCE_SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Shaders"
+        RG_MATERIALX_FILE="${RG_MATERIALX_DIR}/Dark_Glass.mtlx")
     source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${RG_SHADERS})
 
     # Runtime files next to the executable: shaders + Slang / DXC DLLs.

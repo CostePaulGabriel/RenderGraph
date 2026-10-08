@@ -77,25 +77,29 @@ namespace
         const CompiledGraph& g = *result;
         std::printf("%s", DescribeGraph(g).c_str());
 
-        CHECK(g.Passes.size() == 6);
+        CHECK(g.Passes.size() == 9);
         CHECK(IndexOf(g, "DebugNormals") == -1);
         CHECK(g.CulledPasses.size() == 1 && g.CulledPasses[0] == "DebugNormals");
         CHECK(IndexOf(g, "Depth") < IndexOf(g, "GBuffer"));
         CHECK(IndexOf(g, "GBuffer") < IndexOf(g, "Lighting"));
         CHECK(IndexOf(g, "LightUpdate") < IndexOf(g, "Lighting"));
-        CHECK(IndexOf(g, "Lighting") < IndexOf(g, "PostProcess"));
+        CHECK(IndexOf(g, "Shadow") < IndexOf(g, "Lighting"));
+        CHECK(IndexOf(g, "Lighting") < IndexOf(g, "SceneColorCopy"));
+        CHECK(IndexOf(g, "SceneColorCopy") < IndexOf(g, "Forward"));
+        CHECK(IndexOf(g, "Forward") < IndexOf(g, "PostProcess"));
         CHECK(IndexOf(g, "PostProcess") < IndexOf(g, "Overlay"));
         CHECK(IndexOf(g, "Overlay") == int(g.Passes.size()) - 1);
 
-        // Depth, albedo, normal, material, emissive, lights, HDR color, LDR output (Overlay works in place).
-        CHECK(g.Resources.size() == 8);
+        // Depth, shadow, albedo, normal, material, emissive, lights, HDR color, its copy for the glass
+        // (Forward works in place), LDR output (Overlay works in place).
+        CHECK(g.Resources.size() == 10);
         CHECK(g.Output != kInvalidHandle);
         CHECK(g.Resources[g.Output].Name == "PostProcess.output");
         CHECK(g.Resources[g.Output].Texture.Width == 1280);
 
         // Shaders are deduplicated: Scene.slang:VSMain and Fullscreen.slang:VSMain are shared.
-        CHECK(g.Shaders.size() == 8);
-        CHECK(g.Samplers.size() == 2);
+        CHECK(g.Shaders.size() == 10);
+        CHECK(g.Samplers.size() == 2); // wrap anisotropic and linear clamp, shared by GBuffer / Forward / PostProcess
 
         // Switching to the debug view rewires one edge: Lighting and LightUpdate get culled.
         SetDebugNormalsView(graph, true);
